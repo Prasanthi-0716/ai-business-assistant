@@ -14,7 +14,7 @@ function App() {
   const [result, setResult] = useState("");
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/api/health")
+    fetch("https://ai-business-assistant-backend-ten.vercel.app/api/health")
       .then((response) => {
         if (!response.ok) throw new Error();
         return response.json();
@@ -31,7 +31,7 @@ function App() {
 
     try {
       const response = await fetch(
-        "http://127.0.0.1:8000/api/generate",
+        "https://ai-business-assistant-backend-ten.vercel.app/api/generate",
         {
           method: "POST",
           headers: {
