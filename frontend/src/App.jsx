@@ -1,64 +1,88 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 
+const API_URL =
+  "https://ai-business-assistant-backend-ten.vercel.app";
+
 function App() {
   const [backendStatus, setBackendStatus] = useState("Checking...");
-
-  const [businessName, setBusinessName] = useState("");
-  const [businessType, setBusinessType] = useState("");
-  const [offer, setOffer] = useState("");
-  const [targetCustomers, setTargetCustomers] = useState("");
-  const [location, setLocation] = useState("");
-
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState("");
+  const [error, setError] = useState("");
+  const [result, setResult] = useState(null);
+
+  const [business, setBusiness] = useState({
+    businessName: "",
+    businessType: "",
+    offer: "",
+    targetCustomers: "",
+    location: "",
+  });
 
   useEffect(() => {
-    fetch("https://ai-business-assistant-backend-ten.vercel.app/api/health")
-      .then((response) => {
-        if (!response.ok) throw new Error();
-        return response.json();
+    fetch(`${API_URL}/api/health`)
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Backend unavailable");
+        }
+
+        return res.json();
       })
-      .then((data) => setBackendStatus(data.status))
-      .catch(() => setBackendStatus("offline"));
+      .then((data) => {
+        setBackendStatus(data.status);
+      })
+      .catch(() => {
+        setBackendStatus("offline");
+      });
   }, []);
 
-  async function generateContent(event) {
-    event.preventDefault();
+  function handleChange(e) {
+    setBusiness({
+      ...business,
+      [e.target.name]: e.target.value,
+    });
+  }
+
+  async function generateContent(e) {
+    e.preventDefault();
+
+    setError("");
+    setResult(null);
+
+    if (
+      !business.businessName ||
+      !business.businessType ||
+      !business.offer ||
+      !business.targetCustomers ||
+      !business.location
+    ) {
+      setError("Please fill in all business details.");
+      return;
+    }
 
     setLoading(true);
-    setResult("");
 
     try {
-      const response = await fetch(
-        "https://ai-business-assistant-backend-ten.vercel.app/api/generate",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            businessName,
-            businessType,
-            offer,
-            targetCustomers,
-            location,
-          }),
-        }
-      );
+      const response = await fetch(`${API_URL}/api/generate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(business),
+      });
 
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(
-          data.detail || `Backend error ${response.status}`
+          data.detail || "Failed to generate content"
         );
       }
 
-      setResult(data.generated_content);
-    } catch (error) {
-      console.error(error);
-      setResult(`Error: ${error.message}`);
+      setResult(data);
+    } catch (err) {
+      setError(
+        err.message || "Could not connect to the backend."
+      );
     } finally {
       setLoading(false);
     }
@@ -78,13 +102,16 @@ function App() {
               backendStatus === "healthy" ? "online" : ""
             }`}
           ></span>
+
           Backend: {backendStatus}
         </div>
       </header>
 
       <main className="main">
         <section className="hero">
-          <p className="eyebrow">AI-POWERED BUSINESS TOOLS</p>
+          <p className="eyebrow">
+            AI-POWERED BUSINESS TOOLS
+          </p>
 
           <h1>
             Grow your business
@@ -98,13 +125,17 @@ function App() {
           </p>
         </section>
 
-        <form className="business-card" onSubmit={generateContent}>
+        <form
+          className="business-card"
+          onSubmit={generateContent}
+        >
           <div className="card-header">
             <div>
               <h2>Tell us about your business</h2>
+
               <p>
                 Enter a few details and we'll create useful
-                AI-powered marketing content.
+                AI-powered content for you.
               </p>
             </div>
 
@@ -114,80 +145,116 @@ function App() {
           <div className="form-grid">
             <div className="form-group">
               <label>Business name</label>
+
               <input
-                type="text"
+                name="businessName"
+                value={business.businessName}
+                onChange={handleChange}
                 placeholder="e.g. Sweet Bakery"
-                value={businessName}
-                onChange={(e) => setBusinessName(e.target.value)}
-                required
               />
             </div>
 
             <div className="form-group">
               <label>Business type</label>
+
               <input
-                type="text"
+                name="businessType"
+                value={business.businessType}
+                onChange={handleChange}
                 placeholder="e.g. Bakery, Restaurant, Agency"
-                value={businessType}
-                onChange={(e) => setBusinessType(e.target.value)}
-                required
               />
             </div>
 
             <div className="form-group full">
-              <label>What does your business offer?</label>
+              <label>
+                What does your business offer?
+              </label>
+
               <textarea
+                name="offer"
+                value={business.offer}
+                onChange={handleChange}
                 placeholder="Describe your products or services..."
                 rows="4"
-                value={offer}
-                onChange={(e) => setOffer(e.target.value)}
-                required
               ></textarea>
             </div>
 
             <div className="form-group">
               <label>Target customers</label>
+
               <input
-                type="text"
+                name="targetCustomers"
+                value={business.targetCustomers}
+                onChange={handleChange}
                 placeholder="e.g. Students, families, startups"
-                value={targetCustomers}
-                onChange={(e) =>
-                  setTargetCustomers(e.target.value)
-                }
-                required
               />
             </div>
 
             <div className="form-group">
               <label>Location</label>
+
               <input
-                type="text"
+                name="location"
+                value={business.location}
+                onChange={handleChange}
                 placeholder="e.g. Hyderabad"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                required
               />
             </div>
           </div>
 
           <button
-            className="continue-button"
             type="submit"
+            className="continue-button"
             disabled={loading}
           >
-            {loading ? "Generating..." : "Generate AI Content"}
-            <span>→</span>
+            {loading
+              ? "Generating..."
+              : "Generate AI Content"}
+
+            <span>
+              {loading ? "⏳" : "→"}
+            </span>
           </button>
         </form>
 
+        {error && (
+          <div className="error-message">
+            ⚠️ {error}
+          </div>
+        )}
+
         {result && (
-          <section className="result-card">
-            <div className="result-header">
-              <h2>✨ AI Generated Content</h2>
+          <section className="results">
+            <h2>✨ AI Generated Content</h2>
+
+            <div className="result-card">
+              <h3>✦ Social Media</h3>
+
+              <p>{result.socialMedia}</p>
             </div>
 
-            <div className="result-content">
-              {result}
+            <div className="result-card">
+              <h3>✉ Marketing Email</h3>
+
+              <p>{result.marketingEmail}</p>
+            </div>
+
+            <div className="result-card">
+              <h3>✎ Product Description</h3>
+
+              <p>{result.productDescription}</p>
+            </div>
+
+            <div className="result-card">
+              <h3>💡 Business Ideas</h3>
+
+              <ul>
+                {result.businessIdeas?.map(
+                  (idea, index) => (
+                    <li key={index}>{idea}</li>
+                  )
+                )}
+              </ul>
             </div>
           </section>
         )}
@@ -195,26 +262,34 @@ function App() {
         <section className="features">
           <div className="feature">
             <div className="feature-icon">✦</div>
+
             <h3>Social Media</h3>
+
             <p>
-              Create engaging posts for Instagram, LinkedIn and more.
+              Create engaging posts for Instagram,
+              LinkedIn and more.
             </p>
           </div>
 
           <div className="feature">
             <div className="feature-icon">✉</div>
+
             <h3>Marketing Emails</h3>
+
             <p>
-              Generate professional promotional emails quickly.
+              Generate professional promotional emails
+              quickly.
             </p>
           </div>
 
           <div className="feature">
             <div className="feature-icon">✎</div>
+
             <h3>Product Content</h3>
+
             <p>
-              Turn your product information into compelling
-              descriptions.
+              Turn your product information into
+              compelling descriptions.
             </p>
           </div>
         </section>
