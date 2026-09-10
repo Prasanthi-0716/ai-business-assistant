@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import "./App.css";
 
 const API_URL =
-  "https://ai-business-assistant-backend-ten.vercel.app";
+  "https://ai-business-assistant-backend-delta.vercel.app";
 
 function App() {
   const [backendStatus, setBackendStatus] = useState("Checking...");
